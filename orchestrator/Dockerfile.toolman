@@ -1,0 +1,68 @@
+# Dockerfile for Toolman Server
+# Multi-stage build for efficient binary packaging
+
+FROM rust:1.82-slim as builder
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the Cargo files
+COPY orchestrator-common/Cargo.toml ./orchestrator-common/Cargo.toml
+COPY orchestrator-core/Cargo.toml ./orchestrator-core/Cargo.toml
+COPY Cargo.toml ./
+COPY Cargo.lock ./
+
+# Copy the source code
+COPY orchestrator-common/src ./orchestrator-common/src
+COPY orchestrator-core/src ./orchestrator-core/src
+
+# Build the toolman binary
+RUN cargo build --release --bin toolman
+
+# Runtime stage
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user
+RUN groupadd -r toolman && useradd -r -g toolman -s /bin/false toolman
+
+# Copy the binary from builder stage
+COPY --from=builder /app/target/release/toolman /usr/local/bin/toolman
+
+# Create config directory
+RUN mkdir -p /etc/toolman && chown toolman:toolman /etc/toolman
+
+# Copy default configuration
+COPY orchestrator-core/src/config/toolman_default.json /etc/toolman/toolman.json
+
+# Set proper permissions
+RUN chmod +x /usr/local/bin/toolman
+
+# Switch to non-root user
+USER toolman
+
+# Expose the default port
+EXPOSE 3000
+
+# Set default environment variables
+ENV TOOLMAN_CONFIG_PATH=/etc/toolman/toolman.json
+ENV RUST_LOG=toolman=info
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3000/health || exit 1
+
+# Run the toolman server
+CMD ["toolman"]

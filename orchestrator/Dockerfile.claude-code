@@ -1,0 +1,100 @@
+# Dockerfile for Claude Code with MCP Wrapper Integration
+# This image contains Claude Code with the MCP wrapper binary for toolman integration
+
+# Stage 1: Build the MCP wrapper binary
+FROM rust:1.82-slim as builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the Cargo files for dependency caching
+COPY orchestrator-common/Cargo.toml ./orchestrator-common/Cargo.toml
+COPY orchestrator-core/Cargo.toml ./orchestrator-core/Cargo.toml
+COPY Cargo.toml ./
+COPY Cargo.lock ./
+
+# Copy the source code
+COPY orchestrator-common/src ./orchestrator-common/src
+COPY orchestrator-core/src ./orchestrator-core/src
+
+# Build only the mcp-wrapper binary (lightweight)
+RUN cargo build --release --bin mcp-wrapper
+
+# Stage 2: Claude Code runtime with MCP wrapper
+FROM python:3.11-slim
+
+# Install system dependencies for Claude Code
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    git \
+    vim \
+    nano \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Claude Code (latest version)
+# Note: Replace this with the actual Claude Code installation method
+RUN pip install --no-cache-dir claude-code
+
+# Create app directory
+RUN mkdir -p /app/bin /app/config
+WORKDIR /app
+
+# Copy the MCP wrapper binary from builder stage
+COPY --from=builder /app/target/release/mcp-wrapper /app/bin/mcp-wrapper
+
+# Make the binary executable
+RUN chmod +x /app/bin/mcp-wrapper
+
+# Add the binary to PATH
+ENV PATH="/app/bin:${PATH}"
+
+# Create a non-root user for security
+RUN groupadd -r claude && useradd -r -g claude -s /bin/bash -d /app claude
+
+# Set up MCP wrapper configuration
+ENV MCP_TOOLMAN_SERVER_URL=http://toolman:3000/mcp
+ENV MCP_WRAPPER_TIMEOUT=30
+ENV MCP_WRAPPER_DEBUG=false
+ENV RUST_LOG=info
+
+# Create workspace directory for user files
+RUN mkdir -p /workspace && chown -R claude:claude /workspace /app
+
+# Switch to non-root user
+USER claude
+
+# Set the working directory to workspace
+WORKDIR /workspace
+
+# Copy entrypoint script for integrated Claude + MCP wrapper
+COPY --chown=claude:claude docker/claude-entrypoint.sh /app/bin/claude-entrypoint.sh
+RUN chmod +x /app/bin/claude-entrypoint.sh
+
+# Expose ports for debugging/monitoring (if needed)
+EXPOSE 8080
+
+# Health check to ensure both Claude and MCP wrapper are functional
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8080/health 2>/dev/null || \
+        (echo "MCP wrapper test" | mcp-wrapper > /dev/null 2>&1) || exit 1
+
+# Default entrypoint runs Claude Code with MCP wrapper integration
+ENTRYPOINT ["/app/bin/claude-entrypoint.sh"]
+
+# Default command can be overridden
+CMD ["--help"]
+
+# Labels for metadata
+LABEL org.opencontainers.image.title="Claude Code with MCP Wrapper"
+LABEL org.opencontainers.image.description="Claude Code integrated with MCP wrapper for toolman communication"
+LABEL org.opencontainers.image.vendor="5D Labs Platform"
+LABEL org.opencontainers.image.version="1.0.0"

@@ -181,6 +181,25 @@ claudeSettings:
     cleanupPeriodDays: 7
     includeCoAuthoredBy: true
 
+toolman:
+  enabled: false
+  image:
+    repository: "ghcr.io/5dlabs/platform/toolman"
+    tag: "latest"
+    pullPolicy: "IfNotPresent"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  env:
+    - name: LOG_LEVEL
+      value: "info"
+  configPath: "/workspace/toolman.json"
+  port: 3000
+
 labels:
   "app.kubernetes.io/managed-by": "taskrun-controller"
   "app.kubernetes.io/component": "agent"

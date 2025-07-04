@@ -45,6 +45,19 @@ pub struct McpServerConfig {
     pub capabilities: Vec<String>,
 }
 
+/// Toolman server configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolmanConfig {
+    /// Whether toolman is enabled
+    pub enabled: bool,
+    /// Path to toolman configuration file
+    pub config_path: String,
+    /// Default tool access policy
+    pub default_allow_all: bool,
+    /// Agent-specific tool policies
+    pub agent_policies: HashMap<String, Vec<String>>,
+}
+
 /// Orchestrator configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrchestratorConfig {
@@ -55,6 +68,8 @@ pub struct OrchestratorConfig {
     pub workspace_pvc_template: String,
     pub prepare_job_image: String,
     pub node_selector: HashMap<String, String>,
+    pub mcp_servers: HashMap<String, McpServerConfig>,
+    pub toolman_config: Option<ToolmanConfig>,
 }
 
 impl Default for ResourceLimits {

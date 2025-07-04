@@ -51,6 +51,10 @@ pub struct ControllerConfig {
     #[serde(rename = "claudeSettings")]
     pub claude_settings: ClaudeSettings,
 
+    /// Toolman server configuration
+    #[serde(default)]
+    pub toolman: Option<ToolmanConfig>,
+
     /// Labels to apply to resources
     #[serde(default)]
     pub labels: BTreeMap<String, String>,
@@ -438,6 +442,29 @@ pub struct EnvironmentSettings {
 
     #[serde(rename = "includeCoAuthoredBy")]
     pub include_co_authored_by: bool,
+}
+
+/// Toolman server configuration
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ToolmanConfig {
+    /// Whether toolman is enabled
+    pub enabled: bool,
+
+    /// Image configuration for toolman
+    pub image: ImageConfig,
+
+    /// Resource requirements for toolman
+    pub resources: ResourceRequirements,
+
+    /// Environment variables for toolman
+    pub env: Vec<EnvVar>,
+
+    /// Toolman server configuration file path
+    #[serde(rename = "configPath")]
+    pub config_path: String,
+
+    /// Port for toolman server
+    pub port: u16,
 }
 
 impl ControllerConfig {

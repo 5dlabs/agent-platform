@@ -1,0 +1,238 @@
+{
+  "servers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"],
+      "env": {},
+      "enabled": true,
+      "description": "Official filesystem MCP server with 10+ file operation tools"
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      },
+      "enabled": true,
+      "description": "Official GitHub MCP server with 30+ repository management tools"
+    },
+    "git": {
+      "command": "uvx",
+      "args": ["mcp-server-git", "--repository", "/workspace"],
+      "env": {},
+      "enabled": true,
+      "description": "Official Git MCP server with repository analysis tools"
+    },
+    "brave-search": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+      "env": {
+        "BRAVE_API_KEY": "${BRAVE_API_KEY}"
+      },
+      "enabled": false,
+      "description": "Official Brave Search MCP server for web search"
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "env": {},
+      "enabled": false,
+      "description": "Official memory MCP server for persistent knowledge graphs"
+    },
+    "puppeteer": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-puppeteer"],
+      "env": {},
+      "enabled": false,
+      "description": "Official Puppeteer MCP server for browser automation"
+    },
+    "postgresql": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres", "postgresql://localhost/mydb"],
+      "env": {
+        "DATABASE_URL": "${DATABASE_URL}"
+      },
+      "enabled": false,
+      "description": "Official PostgreSQL MCP server for database operations"
+    },
+    "sqlite": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sqlite", "/path/to/database.db"],
+      "env": {},
+      "enabled": false,
+      "description": "Official SQLite MCP server for database operations"
+    }
+  },
+  "exposed_tools": {
+    "filesystem": [
+      "read_file",
+      "write_file",
+      "list_directory",
+      "create_directory",
+      "search_files",
+      "get_file_info"
+    ],
+    "github": [
+      "create_repository",
+      "get_file",
+      "create_pull_request",
+      "create_issue",
+      "search_repositories",
+      "list_commits"
+    ],
+    "git": [
+      "git_log",
+      "git_diff",
+      "git_show",
+      "search_files",
+      "read_file"
+    ],
+    "brave-search": [
+      "brave_web_search",
+      "brave_local_search"
+    ],
+    "memory": [
+      "create_memories",
+      "search_memories",
+      "get_memories"
+    ],
+    "puppeteer": [
+      "puppeteer_screenshot",
+      "puppeteer_navigate",
+      "puppeteer_click",
+      "puppeteer_type"
+    ],
+    "postgresql": [
+      "query",
+      "list_tables",
+      "describe_table",
+      "list_schemas"
+    ],
+    "sqlite": [
+      "query",
+      "list_tables",
+      "describe_table",
+      "read_query"
+    ]
+  },
+  "agent_policies": {
+    "claude-developer": {
+      "allowed_servers": ["filesystem", "github", "git"],
+      "tool_overrides": {
+        "filesystem": ["read_file", "write_file", "list_directory", "create_directory"],
+        "github": ["get_file", "create_pull_request", "create_issue"],
+        "git": ["git_log", "git_diff", "read_file"]
+      }
+    },
+    "claude-researcher": {
+      "allowed_servers": ["filesystem", "brave-search", "memory"],
+      "tool_overrides": {
+        "filesystem": ["read_file", "search_files"],
+        "brave-search": ["brave_web_search"],
+        "memory": ["create_memories", "search_memories"]
+      }
+    },
+    "claude-analyst": {
+      "allowed_servers": ["filesystem", "postgresql", "sqlite"],
+      "tool_overrides": {
+        "filesystem": ["read_file", "list_directory"],
+        "postgresql": ["query", "list_tables", "describe_table"],
+        "sqlite": ["query", "list_tables", "describe_table"]
+      }
+    },
+    "claude-automation": {
+      "allowed_servers": ["filesystem", "puppeteer", "github"],
+      "tool_overrides": {
+        "filesystem": ["read_file", "write_file"],
+        "puppeteer": ["puppeteer_screenshot", "puppeteer_navigate"],
+        "github": ["get_file", "create_issue"]
+      }
+    },
+    "claude-readonly": {
+      "allowed_servers": ["filesystem", "git"],
+      "tool_overrides": {
+        "filesystem": ["read_file", "list_directory", "search_files"],
+        "git": ["git_log", "git_show", "read_file"]
+      }
+    }
+  },
+  "task_based_tool_selection": {
+    "patterns": {
+      "api_development": {
+        "keywords": ["api", "service", "endpoint", "backend"],
+        "additional_tools": {
+          "filesystem": ["create_directory", "move_file"],
+          "github": ["create_repository", "search_repositories"],
+          "git": ["git_diff"]
+        }
+      },
+      "frontend_development": {
+        "keywords": ["frontend", "ui", "react", "vue", "angular"],
+        "additional_tools": {
+          "filesystem": ["read_file", "write_file"],
+          "github": ["create_pull_request"],
+          "puppeteer": ["puppeteer_screenshot"]
+        }
+      },
+      "testing": {
+        "keywords": ["test", "testing", "qa", "quality"],
+        "additional_tools": {
+          "filesystem": ["search_files"],
+          "puppeteer": ["puppeteer_navigate", "puppeteer_click"],
+          "git": ["git_diff"]
+        }
+      },
+      "data_analysis": {
+        "keywords": ["data", "analysis", "report", "dashboard"],
+        "additional_tools": {
+          "postgresql": ["query", "describe_table"],
+          "sqlite": ["query", "list_tables"],
+          "filesystem": ["read_file"]
+        }
+      },
+      "research": {
+        "keywords": ["research", "investigation", "study"],
+        "additional_tools": {
+          "brave-search": ["brave_web_search"],
+          "memory": ["create_memories", "search_memories"],
+          "filesystem": ["search_files"]
+        }
+      },
+      "deployment": {
+        "keywords": ["deploy", "deployment", "ci", "cd", "production"],
+        "additional_tools": {
+          "github": ["create_pull_request", "list_commits"],
+          "git": ["git_log"],
+          "filesystem": ["read_file"]
+        }
+      }
+    }
+  },
+  "default_policy": {
+    "allow_unknown_tools": false,
+    "allow_unknown_servers": false,
+    "max_tools_per_agent": 50,
+    "require_explicit_approval": true
+  },
+  "security_settings": {
+    "dangerous_tools": [
+      "filesystem:delete_file",
+      "filesystem:move_file",
+      "github:delete_repository",
+      "puppeteer:execute_script"
+    ],
+    "require_confirmation": [
+      "filesystem:write_file",
+      "github:create_pull_request",
+      "postgresql:query"
+    ],
+    "audit_all_calls": true,
+    "log_level": "info"
+  },
+  "performance_settings": {
+    "tool_call_timeout": 30000,
+    "max_concurrent_calls": 5,
+    "cache_tool_responses": true,
+    "cache_duration_seconds": 300
+  }
+}

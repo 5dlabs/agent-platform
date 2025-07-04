@@ -1,0 +1,31 @@
+{
+  "_comment": "Default minimal toolman configuration. See toolman_example.json for comprehensive examples with real MCP servers.",
+  "servers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"],
+      "env": {},
+      "enabled": true,
+      "description": "Official filesystem MCP server"
+    }
+  },
+  "exposed_tools": {
+    "filesystem": [
+      "read_file",
+      "write_file",
+      "list_directory"
+    ]
+  },
+  "agent_policies": {
+    "default": {
+      "allowed_servers": ["filesystem"],
+      "tool_overrides": {
+        "filesystem": ["read_file", "write_file", "list_directory"]
+      }
+    }
+  },
+  "default_policy": {
+    "allow_unknown_tools": false,
+    "allow_unknown_servers": false
+  }
+}
